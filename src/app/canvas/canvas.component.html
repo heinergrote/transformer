@@ -1,0 +1,49 @@
+<div class="p-4">
+  <canvas
+    width="400" height="400" class="border border-black" id="fabricSurface">
+  </canvas>
+</div>
+
+<div class="pl-4 text-xl">Reference Points</div>
+
+<div class="flex gap-2">
+  <div class="p-4 grid grid-cols-2 grid-rows-4 gap-1 w-40">
+    <div>{{ s1().x }}</div>
+    <div>{{ s1().y }}</div>
+    <div>{{ s2().x }}</div>
+    <div>{{ s2().y }}</div>
+    <div>{{ s3().x }}</div>
+    <div>{{ s3().y }}</div>
+    <div>{{ s4().x }}</div>
+    <div>{{ s4().y }}</div>
+  </div>
+  <div class="content-center text-2xl"> → </div>
+  <div class="p-4 grid grid-cols-2 grid-rows-4 gap-1 w-40">
+    <div>{{ d1().x }}</div>
+    <div>{{ d1().y }}</div>
+    <div>{{ d2().x }}</div>
+    <div>{{ d2().y }}</div>
+    <div>{{ d3().x }}</div>
+    <div>{{ d3().y }}</div>
+    <div>{{ d4().x }}</div>
+    <div>{{ d4().y }}</div>
+  </div>
+</div>
+
+<div class="pl-4 text-xl">Homography Matrix</div>
+
+<div class="p-4 grid grid-cols-3 grid-rows-3 gap-1 w-96">
+  <div>{{ homography()[0][0] | number:'1.8' }}</div>
+  <div>{{ homography()[0][1] | number:'1.8' }}</div>
+  <div>{{ homography()[0][2] | number:'1.8' }}</div>
+
+  <div>{{ homography()[1][0] | number:'1.8' }}</div>
+  <div>{{ homography()[1][1] | number:'1.8' }}</div>
+  <div>{{ homography()[1][2] | number:'1.8' }}</div>
+
+  <div>{{ homography()[2][0] | number:'1.8' }}</div>
+  <div>{{ homography()[2][1] | number:'1.8' }}</div>
+  <div>{{ homography()[2][2] | number:'1.8' }}</div>
+</div>
+
+

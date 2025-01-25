@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "prime-canvas": {
+    "transformer": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -13,7 +13,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "dist/prime-canvas",
+            "outputPath": "dist/transformer",
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": [
@@ -59,10 +59,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "prime-canvas:build:production"
+              "buildTarget": "transformer:build:production"
             },
             "development": {
-              "buildTarget": "prime-canvas:build:development"
+              "buildTarget": "transformer:build:development"
             }
           },
           "defaultConfiguration": "development"
