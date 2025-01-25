@@ -1,13 +1,13 @@
 import {
+  AfterContentInit,
   AfterViewInit,
   Component,
-  computed, DoCheck,
+  computed,
   effect,
   ElementRef,
-  inject, input,
+  inject,
   NgZone,
-  signal,
-  ViewChild
+  signal, viewChild,
 } from '@angular/core';
 import {BaseFabricObject, Canvas, Circle, Point} from 'fabric';
 import {DecimalPipe} from '@angular/common';
@@ -25,11 +25,11 @@ const size = 400;
   templateUrl: './canvas.component.html',
   styleUrl: './canvas.component.css'
 })
-export class CanvasComponent implements AfterViewInit {
+export class CanvasComponent {
   private zone = inject(NgZone)
   private homographyFinderService = inject(HomographyFinderService)
 
-  @ViewChild('fabricSurface', {static: false}) fabricSurface!: ElementRef<HTMLCanvasElement>;
+  fabricSurface = viewChild.required<ElementRef<HTMLCanvasElement>>('fabricSurface')
 
   s1 = signal<Point>(new Point(left, top));
   s2 = signal<Point>(new Point(left+size, top));
@@ -77,23 +77,19 @@ export class CanvasComponent implements AfterViewInit {
     BaseFabricObject.ownDefaults.originY = 'center'
 
     this.c1 = this.createCircle(this.d1().x, this.d1().y, 20, false);
-    this.c1.on("moving", (_) => this.d1.set(this.c1.getXY()));
     this.c2 = this.createCircle(this.d2().x, this.d2().y, 20, false);
-    this.c2.on("moving", (_) => this.d2.set(this.c2.getXY()));
-    this.c3 = this.createCircle(this.d3().x, this.d3().y, 20, false );
-    this.c3.on("moving", (_) => this.d3.set(this.c3.getXY()));
+    this.c3 = this.createCircle(this.d3().x, this.d3().y, 20, false);
     this.c4 = this.createCircle(this.d4().x, this.d4().y, 20, false);
-    this.c4.on("moving", (_) => this.d4.set(this.c4.getXY()));
 
-    for (let x = 0; x <= size; x+=(size/10)) {
-      for (let y = 0; y <= size; y+=(size/10)) {
-        this.inputs.push(new Point(left+x, top+y))
+    for (let x = 0; x <= size; x += (size / 10)) {
+      for (let y = 0; y <= size; y += (size / 10)) {
+        this.inputs.push(new Point(left + x, top + y))
       }
     }
 
     this.outputs().length
     for (let i = 0; i < this.outputs().length; i++) {
-      this.outputCircles.push(this.createCircle(1,1, 1, true))
+      this.outputCircles.push(this.createCircle(1, 1, 1, true))
     }
 
     effect(() => {
@@ -102,23 +98,45 @@ export class CanvasComponent implements AfterViewInit {
       }
     });
 
+    effect(() => {
+      console.log("fabricSurface init: ",
+        this.fabricSurface().nativeElement.width,
+        this.fabricSurface().nativeElement.height
+      )
+      setTimeout(() => {
+        if (this.canvas !== undefined) {
+          this.canvas.dispose().then(value => {
+            this.canvas = this.createCanvas(this.fabricSurface().nativeElement)
+          })
+        } else {
+          this.canvas = this.createCanvas(this.fabricSurface().nativeElement)
+        }
+      }, 100);
+    })
   }
 
-  public ngAfterViewInit(): void {
+  private createCanvas(el: HTMLCanvasElement): Canvas {
 
-    this.canvas = new Canvas(this.fabricSurface.nativeElement, {
+    const canvas = new Canvas(el, {
       backgroundColor: '#ebebef',
       selection: true,
       preserveObjectStacking: true,
     });
 
-    this.canvas.add(this.c1);
-    this.canvas.add(this.c2);
-    this.canvas.add(this.c3);
-    this.canvas.add(this.c4);
+    canvas.add(this.c1);
+    canvas.add(this.c2);
+    canvas.add(this.c3);
+    canvas.add(this.c4);
+    this.c1.on("moving", (_) => this.d1.set(this.c1.getXY()));
+    this.c2.on("moving", (_) => this.d2.set(this.c2.getXY()));
+    this.c3.on("moving", (_) => this.d3.set(this.c3.getXY()));
+    this.c4.on("moving", (_) => this.d4.set(this.c4.getXY()));
+
     for (let i = 0; i < this.outputs().length; i++) {
-      this.canvas.add(this.outputCircles[i])
+      canvas.add(this.outputCircles[i])
     }
+
+    return canvas
 
   }
 
@@ -135,5 +153,6 @@ export class CanvasComponent implements AfterViewInit {
       hasControls: false
     })
   }
+
 
 }
