@@ -26,11 +26,11 @@ jobs:
       - name: Build Angular app
         run: npm run build --prod
 
-#      - name: Copy files via SSH
-#        uses: appleboy/scp-action@v0.1.8
-#        with:
-#          host: ${{ secrets.SERVER_HOST }} # Add this secret in GitHub
-#          username: ${{ secrets.SERVER_USER }} # Add this secret in GitHub
-#          key: ${{ secrets.SSH_PRIVATE_KEY }}
-#          source: "dist/your-app-name/*" # Adjust to match your Angular build output
-#          target: "/var/www/html" # Adjust to match your server's web directory
+      - name: Copy files via SSH
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "dist/transformer/browser/*"
+          target: "/opt/nginx/transformer"
