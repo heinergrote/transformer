@@ -1,64 +1,53 @@
 import {
-  AfterContentInit,
-  AfterViewInit,
   Component,
   computed,
   effect,
   ElementRef,
-  inject,
-  NgZone,
   signal, viewChild,
 } from '@angular/core';
 import {BaseFabricObject, Canvas, Circle, Point} from 'fabric';
-import {DecimalPipe} from '@angular/common';
-import {HomographyFinderService} from '../service/homography-finder.service';
+import {DecimalPipe, NgStyle} from '@angular/common';
+import {findAffine, findHomography, findPartialAffine, identityMatrix, TransformMatrix} from '../util/homography';
 
-const top = 100;
-const left = 200;
-const size = 400;
+const outputTop = -200;
+const outputLeft = -200;
+const outputSize = 600;
+
+const aTop = 20
+const aLeft = 20
+const aSize = 360
 
 @Component({
   selector: 'app-canvas',
   imports: [
-    DecimalPipe
+    DecimalPipe,
+    NgStyle
   ],
   templateUrl: './canvas.component.html',
   styleUrl: './canvas.component.css'
 })
 export class CanvasComponent {
-  private zone = inject(NgZone)
-  private homographyFinderService = inject(HomographyFinderService)
-
   fabricSurface = viewChild.required<ElementRef<HTMLCanvasElement>>('fabricSurface')
 
-  s1 = signal<Point>(new Point(left, top));
-  s2 = signal<Point>(new Point(left+size, top));
-  s3 = signal<Point>(new Point(left+size, top+size));
-  s4 = signal<Point>(new Point(left, top+size));
+  s1 = signal<Point>(new Point(aLeft, aTop));
+  s2 = signal<Point>(new Point(aLeft+aSize, aTop));
+  s3 = signal<Point>(new Point(aLeft+aSize, aTop+aSize));
+  s4 = signal<Point>(new Point(aLeft, aTop+aSize));
 
   d1 = signal<Point>(this.s1().clone());
   d2 = signal<Point>(this.s2().clone());
   d3 = signal<Point>(this.s3().clone());
   d4 = signal<Point>(this.s4().clone());
 
-
-  homography = computed(() => {
-    return this.homographyFinderService.findHomography(
-      [this.s1(), this.s2(), this.s3(), this.s4()],
-      [this.d1(), this.d2(), this.d3(), this.d4()]
-    )
-  });
-
   inputs : Point[] = []
 
   outputs = computed(() => {
     return this.inputs.map((input) => {
       const [x, y] = [input.x, input.y]
-      const h = this.homography()
-      const d = h[2][0] * x + h[2][1] * y + h[2][2]
+      const {a,b,c,d,e,f,g, h} = {...this.transform()}
       return new Point(
-        (h[0][0] * x + h[0][1] * y + h[0][2]) / d,
-        (h[1][0] * x + h[1][1] * y + h[1][2]) / d
+        (a*x+b*y+c) / (g*x+h*y+1),
+        (d*x+e*y+f) / (g*x+h*y+1)
       )
     })
   });
@@ -67,29 +56,38 @@ export class CanvasComponent {
   c2: Circle
   c3: Circle
   c4: Circle
-
   outputCircles: Circle[] = []
+
+  transform = signal<TransformMatrix>(identityMatrix)
+
+  matrix3d = computed(() =>
+    this.transform().a + ',' + this.transform().d + ',0,' + this.transform().g + ',' +
+    this.transform().b + ',' + this.transform().e + ',0,' + this.transform().h + ',' +
+    '0,0,1,0,' +
+    this.transform().c + ',' + this.transform().f + ',0,' + this.transform().i
+  );
+
 
   protected canvas?: Canvas;
 
   constructor() {
+
     BaseFabricObject.ownDefaults.originX = 'center'
     BaseFabricObject.ownDefaults.originY = 'center'
 
-    this.c1 = this.createCircle(this.d1().x, this.d1().y, 20, false);
-    this.c2 = this.createCircle(this.d2().x, this.d2().y, 20, false);
-    this.c3 = this.createCircle(this.d3().x, this.d3().y, 20, false);
-    this.c4 = this.createCircle(this.d4().x, this.d4().y, 20, false);
+    this.c1 = this.createCircle(this.d1().x, this.d1().y, true);
+    this.c2 = this.createCircle(this.d2().x, this.d2().y, true);
+    this.c3 = this.createCircle(this.d3().x, this.d3().y, true);
+    this.c4 = this.createCircle(this.d4().x, this.d4().y, true);
 
-    for (let x = 0; x <= size; x += (size / 10)) {
-      for (let y = 0; y <= size; y += (size / 10)) {
-        this.inputs.push(new Point(left + x, top + y))
+    for (let x = -outputSize; x <= outputSize*2; x += 40) {
+      for (let y = -outputSize; y <= outputSize*2; y += 40) {
+        this.inputs.push(new Point(outputLeft + x, outputTop + y))
       }
     }
 
-    this.outputs().length
-    for (let i = 0; i < this.outputs().length; i++) {
-      this.outputCircles.push(this.createCircle(1, 1, 1, true))
+    for (let i = 0; i < this.inputs.length; i++) {
+      this.outputCircles.push(this.createCircle(1, 1, false))
     }
 
     effect(() => {
@@ -98,11 +96,10 @@ export class CanvasComponent {
       }
     });
 
+
+    this.updateTransform()
+
     effect(() => {
-      console.log("fabricSurface init: ",
-        this.fabricSurface().nativeElement.width,
-        this.fabricSurface().nativeElement.height
-      )
       setTimeout(() => {
         if (this.canvas !== undefined) {
           this.canvas.dispose().then(value => {
@@ -123,36 +120,56 @@ export class CanvasComponent {
       preserveObjectStacking: true,
     });
 
+    for (let i = 0; i < this.outputs().length; i++) {
+      this.outputCircles[i].setXY(new Point(1,1))
+      canvas.add(this.outputCircles[i])
+      this.outputCircles[i].setXY(this.outputs()[i])
+    }
+
     canvas.add(this.c1);
     canvas.add(this.c2);
     canvas.add(this.c3);
     canvas.add(this.c4);
-    this.c1.on("moving", (_) => this.d1.set(this.c1.getXY()));
-    this.c2.on("moving", (_) => this.d2.set(this.c2.getXY()));
-    this.c3.on("moving", (_) => this.d3.set(this.c3.getXY()));
-    this.c4.on("moving", (_) => this.d4.set(this.c4.getXY()));
+    this.c1.on("moving", (_) => this.updateTransform());
+    this.c2.on("moving", (_) => this.updateTransform());
+    this.c3.on("moving", (_) => this.updateTransform());
+    this.c4.on("moving", (_) => this.updateTransform());
 
-    for (let i = 0; i < this.outputs().length; i++) {
-      canvas.add(this.outputCircles[i])
-    }
 
     return canvas
 
   }
 
-  createCircle(x:number, y:number, radius: number, filled: boolean) : Circle {
+  createCircle(x:number, y:number, handle: boolean) : Circle {
     return new Circle({
       left: x,
       top: y,
       stroke: "#000000",
-      fill: filled ? "#000000" : "transparent",
-      radius: radius,
+      fill: handle ? "#FF0000" : "#000000",
+      radius: handle ? 8 : 2,
       lockRotation: true,
       lockScalingX: true,
       lockScalingY: true,
+      lockMovementX: !handle,
+      lockMovementY: !handle,
+      hasBorders: false,
       hasControls: false
     })
   }
 
+  updateTransform() {
+
+    this.d1.set(this.c1.getXY())
+    this.d2.set(this.c2.getXY())
+    this.d3.set(this.c3.getXY())
+    this.d4.set(this.c4.getXY())
+
+    const tm = findHomography(
+      [this.s1(), this.s2(), this.s3(), this.s4()],
+      [this.d1(), this.d2(), this.d3(), this.d4()],
+    )
+
+    this.transform.set(tm)
+  }
 
 }

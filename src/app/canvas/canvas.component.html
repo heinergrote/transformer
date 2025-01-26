@@ -1,7 +1,7 @@
 <div class="p-4">
   <canvas
     #fabricSurface
-    width="800" height="600"
+    width="400" height="400"
     class="border border-black" id="fabricSurface">
   </canvas>
 </div>
@@ -40,20 +40,20 @@
 
     <div>
 
-      <div class="text-xl">Homography Matrix</div>
+      <div class="text-xl">Projection Matrix</div>
 
-      <div class="p-4 grid grid-cols-3 grid-rows-3 gap-1 w-96">
-        <div>{{ homography()[0][0] | number:'1.8' }}</div>
-        <div>{{ homography()[0][1] | number:'1.8' }}</div>
-        <div>{{ homography()[0][2] | number:'1.8' }}</div>
+      <div class="p-4 grid grid-cols-3 grid-rows-3 gap-1 w-[30rem]">
+        <div>{{ transform().a | number:'1.10' }}</div>
+        <div>{{ transform().b | number:'1.10' }}</div>
+        <div>{{ transform().c | number:'1.10' }}</div>
 
-        <div>{{ homography()[1][0] | number:'1.8' }}</div>
-        <div>{{ homography()[1][1] | number:'1.8' }}</div>
-        <div>{{ homography()[1][2] | number:'1.8' }}</div>
+        <div>{{ transform().d | number:'1.10' }}</div>
+        <div>{{ transform().e | number:'1.10' }}</div>
+        <div>{{ transform().f | number:'1.10' }}</div>
 
-        <div>{{ homography()[2][0] | number:'1.8' }}</div>
-        <div>{{ homography()[2][1] | number:'1.8' }}</div>
-        <div>{{ homography()[2][2] | number:'1.8' }}</div>
+        <div>{{ transform().g | number:'1.10' }}</div>
+        <div>{{ transform().h | number:'1.10' }}</div>
+        <div>{{ 1 | number:'1.10' }}</div>
       </div>
 
 
@@ -61,4 +61,28 @@
 
   </div>
 
+</div>
+
+<!--
+https://franklinta.com/2014/09/08/computing-css-matrix3d-transforms/
+-->
+
+<div class="overflow-clip w-[400px] h-[400px] bg-gray-300 m-4">
+
+  <div class="w-[400px] h-[400px] bg-gradient-to-br from-blue-700 to-fuchsia-500 text-white"
+       [ngStyle]="{
+       'position': 'relative',
+       'transform-origin': '0 0',
+       'transform': 'matrix3d(' + matrix3d() + ')'
+     }"
+  >
+    <div class="font-bold text-7xl flex flex-col gap-4 p-4 h-full">
+      <div>CSS</div>
+      <div>transform:</div>
+      <div>matrix3d</div>
+      <div>👍</div>
+    </div>
+  </div>
+
+</div>
 
