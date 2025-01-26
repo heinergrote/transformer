@@ -70,9 +70,9 @@ export class CanvasComponent implements AfterViewInit {
     const anchorsPadding = 20
     const anchorsSize = 400
 
-    const outputTop = -200;
-    const outputLeft = -200;
-    const outputSize = 600;
+    const outputPadding = 120;
+    const outputSize = 400;
+    const outputStep = 40;
 
     switch (type) {
       case "perspective":
@@ -102,10 +102,10 @@ export class CanvasComponent implements AfterViewInit {
 
     this.inputs = []
     this.outputs = []
-    for (let x = -outputSize; x <= outputSize*2; x += 40) {
-      for (let y = -outputSize; y <= outputSize*2; y += 40) {
-        this.inputs.push(new Point(outputLeft + x, outputTop + y))
-        this.outputs.push(new Point(outputLeft + x, outputTop + y))
+    for (let x = -outputPadding; x <= outputSize + outputPadding; x += outputStep) {
+      for (let y = -outputPadding; y <= outputSize + outputPadding; y += outputStep) {
+        this.inputs.push(new Point(x, y))
+        this.outputs.push(new Point( x, y))
       }
     }
 
