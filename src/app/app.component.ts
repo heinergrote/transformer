@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import {Component, signal} from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import {CanvasComponent} from './canvas/canvas.component';
+import {TransformType} from './util/homography';
 
 @Component({
   selector: 'app-root',
@@ -9,5 +10,5 @@ import {CanvasComponent} from './canvas/canvas.component';
   styleUrl: './app.component.css'
 })
 export class AppComponent {
-  title = 'transformer';
+
 }

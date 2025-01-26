@@ -1,12 +1,15 @@
-import {index, lusolve, matrix, re} from 'mathjs';
+import {lusolve, matrix} from 'mathjs';
 
 export interface TransformMatrix {
   a:number, b:number, c:number, d:number, e:number, f:number, g:number, h:number, i:number
 }
 
+export type TransformType = "perspective" | "affine" | "partialAffine"
+
 interface Point {
   x:number, y:number
 }
+
 
 export const identityMatrix: TransformMatrix = {
   a:1, b:0, c:0,
@@ -14,7 +17,15 @@ export const identityMatrix: TransformMatrix = {
   g:0, h:0, i:1
 }
 
-export function findHomography(src: Point[], dst: Point[]) : TransformMatrix {
+export function findHomographyMatrix(type: TransformType, src: Point[], dst: Point[]) : TransformMatrix {
+  switch (type) {
+    case "perspective": return perspectiveTransform(src, dst)
+    case "affine": return affineTransform(src, dst)
+    case "partialAffine": return partialAffineTransform(src, dst)
+  }
+}
+
+function perspectiveTransform(src: Point[], dst: Point[]) : TransformMatrix {
 
   if (src.length < 4 || dst.length < 4) return identityMatrix
 
@@ -43,7 +54,7 @@ export function findHomography(src: Point[], dst: Point[]) : TransformMatrix {
 
 }
 
-export function findAffine(src: Point[], dst: Point[]) : TransformMatrix {
+function affineTransform(src: Point[], dst: Point[]) : TransformMatrix {
 
   if (src.length < 3 || dst.length < 3) return identityMatrix
 
@@ -72,7 +83,7 @@ export function findAffine(src: Point[], dst: Point[]) : TransformMatrix {
 
 }
 
-export function findPartialAffine(src: Point[], dst: Point[]) : TransformMatrix {
+function partialAffineTransform(src: Point[], dst: Point[]) : TransformMatrix {
 
   if (src.length < 2 || dst.length < 2) return identityMatrix
 

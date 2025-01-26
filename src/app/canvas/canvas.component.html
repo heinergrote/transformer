@@ -1,9 +1,43 @@
-<div class="p-4">
+<div class ="flex gap-1 mx-4 pt-2">
+  @for (type of types; track type ) {
+    @if (transformType() == type) {
+      <button class="border p-1 font-bold" (click)="onTransformType(type)">{{type}}</button>
+    } @else {
+      <button class="border p-1" (click)="onTransformType(type)">{{type}}</button>
+    }
+  }
+</div>
+
+<div class="flex p-4 gap-4">
   <canvas
     #fabricSurface
     width="400" height="400"
-    class="border border-black" id="fabricSurface">
+    id="fabricSurface">
   </canvas>
+
+  <!--
+  https://franklinta.com/2014/09/08/computing-css-matrix3d-transforms/
+  -->
+
+  <div class="overflow-clip w-[400px] h-[400px] bg-gray-300">
+
+    <div class="w-[400px] h-[400px] bg-gradient-to-br from-blue-700 to-fuchsia-500 text-white"
+         [ngStyle]="{
+       'position': 'relative',
+       'transform-origin': '0 0',
+       'transform': 'matrix3d(' + matrix3d() + ')'
+     }"
+    >
+      <div class="font-bold text-7xl flex flex-col gap-4 p-4 h-full">
+        <div>CSS</div>
+        <div>transform:</div>
+        <div>matrix3d</div>
+        <div>👍</div>
+      </div>
+    </div>
+
+  </div>
+
 </div>
 
 <div class="flex p-2">
@@ -11,27 +45,19 @@
   <div>
     <div class="text-xl">Reference Points</div>
 
-    <div class="flex gap-2">
-      <div class="p-4 grid grid-cols-2 grid-rows-4 gap-1 w-40">
-        <div>{{ s1().x }}</div>
-        <div>{{ s1().y }}</div>
-        <div>{{ s2().x }}</div>
-        <div>{{ s2().y }}</div>
-        <div>{{ s3().x }}</div>
-        <div>{{ s3().y }}</div>
-        <div>{{ s4().x }}</div>
-        <div>{{ s4().y }}</div>
+    <div class="flex p-4 gap-2">
+      <div class="grid grid-cols-2 grid-rows-4 gap-1 w-36">
+        @for (s of sourcePoints(); track $index) {
+          <div>{{ s.x }}</div>
+          <div>{{ s.y }}</div>
+        }
       </div>
-      <div class="content-center text-2xl"> → </div>
-      <div class="p-4 grid grid-cols-2 grid-rows-4 gap-1 w-40">
-        <div>{{ d1().x }}</div>
-        <div>{{ d1().y }}</div>
-        <div>{{ d2().x }}</div>
-        <div>{{ d2().y }}</div>
-        <div>{{ d3().x }}</div>
-        <div>{{ d3().y }}</div>
-        <div>{{ d4().x }}</div>
-        <div>{{ d4().y }}</div>
+      <div class="p-4 text-2xl"> → </div>
+      <div class="grid grid-cols-2 grid-rows-4 gap-1 w-36">
+        @for (d of destPoints(); track $index) {
+          <div>{{ d.x }}</div>
+          <div>{{ d.y }}</div>
+        }
       </div>
     </div>
   </div>
@@ -62,27 +88,3 @@
   </div>
 
 </div>
-
-<!--
-https://franklinta.com/2014/09/08/computing-css-matrix3d-transforms/
--->
-
-<div class="overflow-clip w-[400px] h-[400px] bg-gray-300 m-4">
-
-  <div class="w-[400px] h-[400px] bg-gradient-to-br from-blue-700 to-fuchsia-500 text-white"
-       [ngStyle]="{
-       'position': 'relative',
-       'transform-origin': '0 0',
-       'transform': 'matrix3d(' + matrix3d() + ')'
-     }"
-  >
-    <div class="font-bold text-7xl flex flex-col gap-4 p-4 h-full">
-      <div>CSS</div>
-      <div>transform:</div>
-      <div>matrix3d</div>
-      <div>👍</div>
-    </div>
-  </div>
-
-</div>
-
