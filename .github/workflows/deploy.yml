@@ -1,0 +1,36 @@
+name: Deploy Angular App
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Angular app
+        run: npm run build --prod
+
+#      - name: Copy files via SSH
+#        uses: appleboy/scp-action@v0.1.8
+#        with:
+#          host: ${{ secrets.SERVER_HOST }} # Add this secret in GitHub
+#          username: ${{ secrets.SERVER_USER }} # Add this secret in GitHub
+#          key: ${{ secrets.SSH_PRIVATE_KEY }}
+#          source: "dist/your-app-name/*" # Adjust to match your Angular build output
+#          target: "/var/www/html" # Adjust to match your server's web directory
