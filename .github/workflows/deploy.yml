@@ -34,3 +34,5 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "dist/transformer/browser/*"
           target: "/opt/nginx/transformer"
+          strip_components: 3
+          rm: true
