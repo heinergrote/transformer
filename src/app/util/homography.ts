@@ -10,7 +10,6 @@ interface Point {
   x:number, y:number
 }
 
-
 export const identityMatrix: TransformMatrix = {
   a:1, b:0, c:0,
   d:0, e:1, f:0,
