@@ -9,19 +9,13 @@
 </div>
 
 <div class="flex p-4 gap-4">
-
   <div>
-    <canvas
-      #fabricSurface
-      width="400" height="400"
-      id="fabricSurface">
-    </canvas>
+    <div #pixiContainer id="pixi-container" class="w-[400px] h-[400px] bg-gray-200"></div>
     <div>Canvas Drawing</div>
   </div>
 
   <div>
     <!--  https://franklinta.com/2014/09/08/computing-css-matrix3d-transforms/  -->
-    <!--  -->
     <div class="w-[400px] h-[400px] overflow-clip bg-gray-300">
 
       <div class="w-[400px] h-[400px] bg-gradient-to-br from-blue-700 to-fuchsia-500 text-white" [ngStyle]="{
