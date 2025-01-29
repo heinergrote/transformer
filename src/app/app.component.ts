@@ -1,10 +1,11 @@
 import {Component} from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import {CanvasComponent} from './canvas/canvas.component';
+import {PixieComponent} from './pixie/pixie.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, CanvasComponent],
+  imports: [RouterOutlet, CanvasComponent, PixieComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
