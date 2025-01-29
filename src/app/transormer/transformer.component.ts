@@ -4,36 +4,37 @@ import {
   ElementRef,
   signal, viewChild,
 } from '@angular/core';
-import {BaseFabricObject, Canvas, Circle, Point, XY} from 'fabric';
 import {DecimalPipe, NgStyle} from '@angular/common';
 import {
   findHomographyMatrix,
   TransformMatrix,
   TransformType
 } from '../util/homography';
+import {Application, FederatedPointerEvent, FederatedWheelEvent, Graphics, Point} from 'pixi.js';
 
 
 @Component({
-  selector: 'app-canvas',
+  selector: 'app-transformer',
   imports: [
     DecimalPipe,
     NgStyle,
   ],
-  templateUrl: './canvas.component.html',
-  styleUrl: './canvas.component.css'
+  templateUrl: './transformer.component.html',
+  styleUrl: './transformer.component.css'
 })
-export class CanvasComponent implements AfterViewInit {
+export class TransformerComponent implements AfterViewInit {
 
-  fabricSurface = viewChild.required<ElementRef<HTMLCanvasElement>>('fabricSurface')
-  canvas?: Canvas;
+  pixiContainer = viewChild.required<ElementRef<HTMLDivElement>>('pixiContainer')
+  pixieApp : Application | undefined;
+  dragTarget : any;
 
   transformType = signal<TransformType>("perspective")
   types: TransformType[] = ["perspective", "affine", "partialAffine"];
 
   srcPoints = signal<Point[]>([])
   destPoints = signal<Point[]>([])
-  destCircles: Circle[] = []
-  srcCircles: Circle[] = []
+  destCircles: Graphics[] = []
+  srcCircles: Graphics[] = []
 
   transform = computed(() => {
     return findHomographyMatrix(this.transformType(), this.srcPoints(), this.destPoints())
@@ -41,7 +42,7 @@ export class CanvasComponent implements AfterViewInit {
 
   inputs: Point[] = []
 
-  outputDots: Circle[] = []
+  outputDots: Graphics[] = []
 
   matrix3d = computed(() =>
     this.transform().a + ',' + this.transform().d + ',0,' + this.transform().g + ',' +
@@ -58,18 +59,18 @@ export class CanvasComponent implements AfterViewInit {
     // update the dest circles when the points change
     effect(() => {
       this.destPoints().forEach((point, index) => {
-        if (this.destCircles[index].getXY().eq(point)) return
-        this.destCircles[index].setXY(point)
-        this.destCircles[index].setCoords()
+        const circle = this.destCircles[index]
+        if (circle.x !== point.x || circle.y !== point.x)
+          circle.position.set(point.x, point.y)
       });
     })
 
     // update the src circles when the points change
     effect(() => {
       this.srcPoints().forEach((point, index) => {
-        if (this.srcCircles[index].getXY().eq(point)) return
-        this.srcCircles[index].setXY(point)
-        this.srcCircles[index].setCoords()
+        const circle = this.srcCircles[index]
+        if (circle.x !== point.x || circle.y !== point.x)
+          circle.position.set(point.x, point.y)
       });
     })
 
@@ -81,17 +82,25 @@ export class CanvasComponent implements AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    BaseFabricObject.ownDefaults.originX = 'center'
-    BaseFabricObject.ownDefaults.originY = 'center'
-    this.canvas = new Canvas(this.fabricSurface().nativeElement)
-    this.initTransform(this.transformType())
+    this.initApp().then(app => {
+      this.pixieApp = app;
+      console.log(app)
+      this.initTransform(this.transformType())
+    })
+  }
+
+  async initApp() {
+    const app = new Application();
+    await app.init({ background: "#e5e7eb", width: 400, height: 400 });
+    this.pixiContainer().nativeElement.appendChild(app.canvas);
+    app.stage.eventMode = 'static';
+    app.stage.hitArea = app.screen;
+    app.stage.on('pointerup', this.onDragEnd);
+    app.stage.on('pointerupoutside', this.onDragEnd);
+    return app
   }
 
   initTransform(type:TransformType) {
-    if (this.canvas) {
-      this.canvas.clear()
-    }
-
     const anchorsPadding = 20
     const anchorsSize = 400
 
@@ -131,41 +140,28 @@ export class CanvasComponent implements AfterViewInit {
     }
 
     this.destPoints.set(this.srcPoints().slice())
-
-    const canvas = this.canvas
-    if (canvas) {
-      canvas.clear()
-      canvas.backgroundColor = '#d1d5db'
-      canvas.selection = true
-      canvas.preserveObjectStacking = true
+    const pixieApp = this.pixieApp
+    if (pixieApp) {
+      pixieApp.stage.removeChildren()
 
       // add output "lattice" (all at pos 1,1, because fabric seems to have a bug with negative coordinates)
       this.outputDots = this.inputs.map(
         (_) => {
-          const dot = this.createCircle({x:1, y:1}, false)
-          canvas.add(dot)
-          return dot
+          return pixieApp.stage.addChild(new Graphics().circle(0, 0, 3).fill(0x000000));
         }
       )
 
       this.srcCircles = this.srcPoints().map(
         (_) => {
-          const circle = this.createCircle({x:1, y:1}, true)
-          canvas.add(circle)
-          circle.fill = "#00FF00"
-          circle.on("moving", (_) => {
-            this.srcPoints.set(this.srcCircles.map((circle) => circle.getXY()))
-          })
+          const circle = this.makeHandle(1,1)
+          pixieApp.stage.addChild(circle)
           return circle
         }
       )
       this.destCircles = this.destPoints().map(
         (_) => {
-          const circle = this.createCircle({x:1, y:1}, true)
-          canvas.add(circle)
-          circle.on("moving", (_) => {
-            this.destPoints.set(this.destCircles.map((circle) => circle.getXY()))
-          })
+          const circle = this.makeHandle(1,1)
+          pixieApp.stage.addChild(circle)
           return circle
         }
       )
@@ -174,21 +170,15 @@ export class CanvasComponent implements AfterViewInit {
 
   }
 
-  createCircle(point: XY, handle: boolean) : Circle {
-    return new Circle({
-      left: point.x,
-      top: point.y,
-      stroke: "#000000",
-      fill: handle ? "#FF0000" : "#000000",
-      radius: handle ? 8 : 2,
-      lockRotation: true,
-      lockScalingX: true,
-      lockScalingY: true,
-      lockMovementX: !handle,
-      lockMovementY: !handle,
-      hasBorders: false,
-      hasControls: false
-    })
+
+  makeHandle(x: number, y: number) {
+    const handle = new Graphics().circle(0, 0, 10).fill(0xFF0000).stroke(0x000000);
+    handle.alpha = 0.5
+    handle.position.set(x, y);
+    handle.eventMode = 'dynamic';
+    handle.cursor = 'pointer';
+    handle.on('pointerdown', this.onPointerDown)
+    return handle
   }
 
   renderTransformation(tm: TransformMatrix) {
@@ -202,15 +192,41 @@ export class CanvasComponent implements AfterViewInit {
       )
     })
     outputs.forEach((point, index) => {
-      this.outputDots[index].setXY(point)
+      this.outputDots[index].position.set(point.x, point.y)
     })
-    this.canvas?.renderAll()
-
   }
 
   onTransformType(type: TransformType) {
     this.transformType.set(type)
     this.initTransform(this.transformType())
+  }
+
+  onPointerDown = (event: FederatedPointerEvent) => {
+    this.dragTarget = event.target;
+    this.pixieApp!.stage.on('pointermove', this.onDragMove)
+  }
+
+  onDragMove= (event: FederatedPointerEvent) => {
+    if (this.dragTarget) {
+      this.dragTarget.parent.toLocal(event.global, null, this.dragTarget.position);
+      this.srcPoints.set(
+        this.srcCircles.map((circle) => {
+          return new Point(Math.round(circle.position.x), Math.round(circle.position.y))
+        })
+      )
+      this.destPoints.set(
+        this.destCircles.map((circle) => {
+          return new Point(Math.round(circle.position.x), Math.round(circle.position.y))
+        })
+      )
+    }
+  }
+
+  onDragEnd = (event: FederatedPointerEvent)=> {
+    if (this.dragTarget) {
+      this.pixieApp!.stage.off('pointermove', this.onDragMove);
+      this.dragTarget = null;
+    }
   }
 
 }
