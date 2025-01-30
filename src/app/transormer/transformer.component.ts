@@ -127,9 +127,9 @@ export class TransformerComponent implements AfterViewInit {
   }
 
   initTransform(type:TransformType) {
-    const outputPadding = 120;
+    const outputPadding = 400;
     const outputSize = 400;
-    const outputStep = 40;
+    const outputStep = 20;
 
     this.inputs = []
     for (let x = -outputPadding; x <= outputSize + outputPadding; x += outputStep) {
@@ -148,7 +148,7 @@ export class TransformerComponent implements AfterViewInit {
       // add output "lattice" (all at pos 1,1, because fabric seems to have a bug with negative coordinates)
       this.outputDots = this.inputs.map(
         (_) => {
-          return pixieApp.stage.addChild(new Graphics().circle(0, 0, 3).fill(0x000000));
+          return pixieApp.stage.addChild(new Graphics().circle(0, 0, 2).fill(0x000000));
         }
       )
 
