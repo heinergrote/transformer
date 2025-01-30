@@ -3,5 +3,5 @@
 Playing around with projective transformations
 
 - Angular 
-- fabric.js
-- mathjs
+- PixiJS
+- Math.js

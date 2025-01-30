@@ -10,7 +10,8 @@ import {
   TransformMatrix,
   TransformType
 } from '../util/homography';
-import {Application, FederatedPointerEvent, FederatedWheelEvent, Graphics, Point} from 'pixi.js';
+import {Application, FederatedPointerEvent, Graphics, Point} from 'pixi.js';
+import {FormControl, FormGroup, ReactiveFormsModule} from '@angular/forms';
 
 
 @Component({
@@ -18,6 +19,7 @@ import {Application, FederatedPointerEvent, FederatedWheelEvent, Graphics, Point
   imports: [
     DecimalPipe,
     NgStyle,
+    ReactiveFormsModule,
   ],
   templateUrl: './transformer.component.html',
   styleUrl: './transformer.component.css'
@@ -54,7 +56,27 @@ export class TransformerComponent implements AfterViewInit {
     this.transform().a + " " + this.transform().d + " " + this.transform().b + " " +
     this.transform().e + " " + this.transform().c + " " + this.transform().f + ")")
 
+  srcPointsForm: FormGroup;
+
   constructor() {
+
+    this.srcPointsForm = new FormGroup({
+      p1x: new FormControl(0),
+      p1y: new FormControl(0),
+      p2x: new FormControl(0),
+      p2y: new FormControl(0),
+      p3x: new FormControl(0),
+      p3y: new FormControl(0),
+      p4x: new FormControl(0),
+      p4y: new FormControl(0),
+    });
+
+    this.srcPointsForm.valueChanges.subscribe(() => {
+      const newPoints = this.srcPoints().map((_, i) =>
+        new Point(this.srcPointsForm.get('p'+(i+1)+'x')?.value, this.srcPointsForm.get('p'+(i+1)+'y')?.value)
+      );
+      this.srcPoints.set(newPoints)
+    })
 
     // update the dest circles when the points change
     effect(() => {
@@ -71,7 +93,11 @@ export class TransformerComponent implements AfterViewInit {
         const circle = this.srcCircles[index]
         if (circle.x !== point.x || circle.y !== point.x)
           circle.position.set(point.x, point.y)
+
+        this.srcPointsForm.controls['p'+ (index+1) + 'x'].setValue(point.x, {emitEvent: false})
+        this.srcPointsForm.controls['p'+ (index+1) + 'y'].setValue(point.y, {emitEvent: false})
       });
+
     })
 
     // render the display when the transformationMatrix changes
@@ -91,7 +117,7 @@ export class TransformerComponent implements AfterViewInit {
 
   async initApp() {
     const app = new Application();
-    await app.init({ background: "#e5e7eb", width: 400, height: 400 });
+    await app.init({ background: "#e5e7eb", width: 400, height: 400, antialias: true});
     this.pixiContainer().nativeElement.appendChild(app.canvas);
     app.stage.eventMode = 'static';
     app.stage.hitArea = app.screen;
@@ -101,9 +127,6 @@ export class TransformerComponent implements AfterViewInit {
   }
 
   initTransform(type:TransformType) {
-    const anchorsPadding = 20
-    const anchorsSize = 400
-
     const outputPadding = 120;
     const outputSize = 400;
     const outputStep = 40;
@@ -114,6 +137,45 @@ export class TransformerComponent implements AfterViewInit {
         this.inputs.push(new Point(x, y))
       }
     }
+
+    this.initSrcPoints(type)
+    this.destPoints.set(this.srcPoints().slice())
+
+    const pixieApp = this.pixieApp
+    if (pixieApp) {
+      pixieApp.stage.removeChildren()
+
+      // add output "lattice" (all at pos 1,1, because fabric seems to have a bug with negative coordinates)
+      this.outputDots = this.inputs.map(
+        (_) => {
+          return pixieApp.stage.addChild(new Graphics().circle(0, 0, 3).fill(0x000000));
+        }
+      )
+
+      this.srcCircles = this.srcPoints().map(
+        (_) => {
+          const circle = this.makeCross(1,1)
+          pixieApp.stage.addChild(circle)
+          return circle
+        }
+      )
+
+      this.destCircles = this.destPoints().map(
+        (_) => {
+          const circle = this.makeHandle(1,1)
+          pixieApp.stage.addChild(circle)
+          return circle
+        }
+      )
+
+    }
+
+  }
+
+  initSrcPoints(type: TransformType) {
+
+    const anchorsPadding = 0
+    const anchorsSize = 400
 
     switch (type) {
       case "perspective":
@@ -139,37 +201,7 @@ export class TransformerComponent implements AfterViewInit {
         break
     }
 
-    this.destPoints.set(this.srcPoints().slice())
-    const pixieApp = this.pixieApp
-    if (pixieApp) {
-      pixieApp.stage.removeChildren()
-
-      // add output "lattice" (all at pos 1,1, because fabric seems to have a bug with negative coordinates)
-      this.outputDots = this.inputs.map(
-        (_) => {
-          return pixieApp.stage.addChild(new Graphics().circle(0, 0, 3).fill(0x000000));
-        }
-      )
-
-      this.srcCircles = this.srcPoints().map(
-        (_) => {
-          const circle = this.makeHandle(1,1)
-          pixieApp.stage.addChild(circle)
-          return circle
-        }
-      )
-      this.destCircles = this.destPoints().map(
-        (_) => {
-          const circle = this.makeHandle(1,1)
-          pixieApp.stage.addChild(circle)
-          return circle
-        }
-      )
-
-    }
-
   }
-
 
   makeHandle(x: number, y: number) {
     const handle = new Graphics().circle(0, 0, 10).fill(0xFF0000).stroke(0x000000);
@@ -180,6 +212,24 @@ export class TransformerComponent implements AfterViewInit {
     handle.on('pointerdown', this.onPointerDown)
     return handle
   }
+
+  makeCross(x: number, y: number) {
+    const cross = new Graphics()
+      .moveTo(-10, 0).lineTo(-2,0)
+      .moveTo(2, 0).lineTo(10,0)
+      .moveTo(0, -10).lineTo(0,-2)
+      .moveTo(0, 2).lineTo(0,10)
+      .circle(0,0, 16)
+      .fill({color: 0xFF0000, alpha: 0})
+      .stroke(0x000000);
+    cross.position.set(x, y);
+    cross.position.set(x, y);
+    cross.eventMode = 'dynamic';
+    cross.cursor = 'pointer';
+    cross.on('pointerdown', this.onPointerDown)
+    return cross
+  }
+
 
   renderTransformation(tm: TransformMatrix) {
 
@@ -222,7 +272,7 @@ export class TransformerComponent implements AfterViewInit {
     }
   }
 
-  onDragEnd = (event: FederatedPointerEvent)=> {
+  onDragEnd = (_: FederatedPointerEvent)=> {
     if (this.dragTarget) {
       this.pixieApp!.stage.off('pointermove', this.onDragMove);
       this.dragTarget = null;
