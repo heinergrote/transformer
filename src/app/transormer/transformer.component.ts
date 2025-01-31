@@ -46,13 +46,13 @@ export class TransformerComponent implements AfterViewInit {
 
   outputDots: Graphics[] = []
 
-  matrix3d = computed(() =>
+  cssTransformMatrix3d = computed(() => "matrix3d(" +
     this.transform().a + ',' + this.transform().d + ',0,' + this.transform().g + ',' +
     this.transform().b + ',' + this.transform().e + ',0,' + this.transform().h + ',' +
     '0,0,1,0,' +
-    this.transform().c + ',' + this.transform().f + ',0,' + this.transform().i)
+    this.transform().c + ',' + this.transform().f + ',0,' + this.transform().i +")")
 
-  svgTransform = computed(() => "matrix(" +
+  svgTransformMatrix = computed(() => "matrix(" +
     this.transform().a + " " + this.transform().d + " " + this.transform().b + " " +
     this.transform().e + " " + this.transform().c + " " + this.transform().f + ")")
 
