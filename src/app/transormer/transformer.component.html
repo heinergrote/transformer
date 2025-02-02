@@ -9,9 +9,10 @@
 </div>
 
 <div class="flex p-4 gap-4">
+
   <div>
-    <div #pixiContainer id="pixi-container" class="w-[400px] h-[400px] bg-gray-200"></div>
-    <div>Canvas Drawing</div>
+    <div #viewContainer id="pixi-container" class="w-[400px] h-[400px] bg-gray-200"></div>
+    <div>Canvas/WebGL Drawing</div>
   </div>
 
   <div>
@@ -66,69 +67,63 @@
 
 </div>
 
-<div class="flex p-2">
+<div class="flex p-4 gap-8">
 
   <div>
     <div class="text-xl">Reference Points</div>
+    <div class="flex py-2 gap-2">
 
-    <div class="flex p-4 gap-2">
-      <form [formGroup]="srcPointsForm" >
-        <div class="flex flex-col gap-1">
-
-          @for (point of srcPoints(); track $index) {
-            <div class="flex flex-row gap-1">
-              <input class="w-14 border border-gray-200 p-0.5"
-                     value="{{ point.x }}"
-                     id="p{{$index+1}}x" type="number" formControlName="p{{$index+1}}x"
-              >
-              <input class="w-14 border border-gray-200 p-0.5"
-                     value="{{ point.y }}"
-                     id="p{{$index+1}}y" type="number" formControlName="p{{$index+1}}y"
-              >
-            </div>
-          }
+      <form [formGroup]="srcPointsForm" class="flex flex-col gap-1">
+        @for (point of srcPoints(); track $index) {
           <div class="flex flex-row gap-1">
-            <button type="button" (click)="initSrcPoints(transformType())" class="border w-14 p-1">Reset</button>
-          </div>
-        </div>
-
-      </form>
-      <div class="p-4 text-2xl"> → </div>
-      <div class="flex flex-col gap-1">
-        @for (d of destPoints(); track $index) {
-          <div class="flex flex-row gap-1">
-            <div class="w-14 border border-white p-0.5">{{ d.x }}</div>
-            <div class="w-14 border border-white p-0.5">{{ d.y }}</div>
+            <input class="w-14 border border-gray-200 p-0.5"
+                   value="{{ point.x }}"
+                   id="sx{{$index+1}}" type="number" formControlName="sx{{$index+1}}"
+            >
+            <input class="w-14 border border-gray-200 p-0.5"
+                   value="{{ point.y }}"
+                   id="sy{{$index+1}}" type="number" formControlName="sy{{$index+1}}"
+            >
           </div>
         }
-        <div></div>
-      </div>
+        <button type="button" (click)="onResetSrc()" class="border w-14 p-1">Reset</button>
+      </form>
+
+      <div class="p-1 text-2xl"> → </div>
+
+      <form [formGroup]="destPointsForm" class="flex flex-col gap-1">
+        @for (point of destPoints(); track $index) {
+          <div class="flex flex-row gap-1">
+            <input class="w-14 border border-gray-200 p-0.5"
+                   value="{{ point.x }}"
+                   id="dx{{$index+1}}" type="number" formControlName="dx{{$index+1}}"
+            >
+            <input class="w-14 border border-gray-200 p-0.5"
+                   value="{{ point.y }}"
+                   id="dy{{$index+1}}" type="number" formControlName="dy{{$index+1}}"
+            >
+          </div>
+        }
+        <button type="button" (click)="onResetDest()" class="border w-14 p-1">Reset</button>
+      </form>
+
     </div>
   </div>
 
-  <div>
-
     <div>
-
       <div class="text-xl">Projection Matrix</div>
-
-      <div class="p-4 grid grid-cols-3 grid-rows-3 gap-1 w-[30rem]">
+      <div class="py-2 grid grid-cols-3 grid-rows-3 gap-1 w-[30rem]">
         <div>{{ transform().a | number:'1.10' }}</div>
         <div>{{ transform().b | number:'1.10' }}</div>
         <div>{{ transform().c | number:'1.10' }}</div>
-
         <div>{{ transform().d | number:'1.10' }}</div>
         <div>{{ transform().e | number:'1.10' }}</div>
         <div>{{ transform().f | number:'1.10' }}</div>
-
         <div>{{ transform().g | number:'1.10' }}</div>
         <div>{{ transform().h | number:'1.10' }}</div>
         <div>{{ 1 | number:'1.10' }}</div>
       </div>
-
     </div>
-
-  </div>
 
 </div>
 

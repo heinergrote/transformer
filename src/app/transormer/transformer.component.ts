@@ -7,12 +7,12 @@ import {
 import {DecimalPipe, NgStyle} from '@angular/common';
 import {
   findHomographyMatrix,
-  TransformMatrix,
   TransformType
 } from '../util/homography';
-import {Application, FederatedPointerEvent, Graphics, Point} from 'pixi.js';
 import {FormControl, FormGroup, ReactiveFormsModule} from '@angular/forms';
+import {TransformerView} from '../util/transformer-view';
 
+interface XY {x:number, y:number}
 
 @Component({
   selector: 'app-transformer',
@@ -26,25 +26,18 @@ import {FormControl, FormGroup, ReactiveFormsModule} from '@angular/forms';
 })
 export class TransformerComponent implements AfterViewInit {
 
-  pixiContainer = viewChild.required<ElementRef<HTMLDivElement>>('pixiContainer')
-  pixieApp : Application | undefined;
-  dragTarget : any;
+  viewContainer = viewChild.required<ElementRef<HTMLElement>>('viewContainer')
+  transformerView: TransformerView | undefined;
 
   transformType = signal<TransformType>("perspective")
   types: TransformType[] = ["perspective", "affine", "partialAffine"];
 
-  srcPoints = signal<Point[]>([])
-  destPoints = signal<Point[]>([])
-  destCircles: Graphics[] = []
-  srcCircles: Graphics[] = []
+  srcPoints = signal<XY[]>([])
+  destPoints = signal<XY[]>([])
 
   transform = computed(() => {
     return findHomographyMatrix(this.transformType(), this.srcPoints(), this.destPoints())
   })
-
-  inputs: Point[] = []
-
-  outputDots: Graphics[] = []
 
   cssTransformMatrix3d = computed(() => "matrix3d(" +
     this.transform().a + ',' + this.transform().d + ',0,' + this.transform().g + ',' +
@@ -56,227 +49,126 @@ export class TransformerComponent implements AfterViewInit {
     this.transform().a + " " + this.transform().d + " " + this.transform().b + " " +
     this.transform().e + " " + this.transform().c + " " + this.transform().f + ")")
 
-  srcPointsForm: FormGroup;
+  srcPointsForm: FormGroup  = new FormGroup({
+    sx1: new FormControl(0),
+    sy1: new FormControl(0),
+    sx2: new FormControl(0),
+    sy2: new FormControl(0),
+    sx3: new FormControl(0),
+    sy3: new FormControl(0),
+    sx4: new FormControl(0),
+    sy4: new FormControl(0),
+  });
+
+  destPointsForm: FormGroup  = new FormGroup({
+    dx1: new FormControl(0),
+    dy1: new FormControl(0),
+    dx2: new FormControl(0),
+    dy2: new FormControl(0),
+    dx3: new FormControl(0),
+    dy3: new FormControl(0),
+    dx4: new FormControl(0),
+    dy4: new FormControl(0),
+  });
 
   constructor() {
 
-    this.srcPointsForm = new FormGroup({
-      p1x: new FormControl(0),
-      p1y: new FormControl(0),
-      p2x: new FormControl(0),
-      p2y: new FormControl(0),
-      p3x: new FormControl(0),
-      p3y: new FormControl(0),
-      p4x: new FormControl(0),
-      p4y: new FormControl(0),
-    });
-
     this.srcPointsForm.valueChanges.subscribe(() => {
-      const newPoints = this.srcPoints().map((_, i) =>
-        new Point(this.srcPointsForm.get('p'+(i+1)+'x')?.value, this.srcPointsForm.get('p'+(i+1)+'y')?.value)
-      );
-      this.srcPoints.set(newPoints)
+      this.srcPoints.set(this.srcPoints().map((_, i) => ({
+        x: this.srcPointsForm.get(`sx${i + 1}`)?.value,
+        y: this.srcPointsForm.get(`sy${i + 1}`)?.value
+      })))
     })
 
-    // update the dest circles when the points change
-    effect(() => {
-      this.destPoints().forEach((point, index) => {
-        const circle = this.destCircles[index]
-        if (circle.x !== point.x || circle.y !== point.x)
-          circle.position.set(point.x, point.y)
-      });
+    this.destPointsForm.valueChanges.subscribe(() => {
+      this.destPoints.set(this.destPoints().map((_, i) => ({
+        x: this.destPointsForm.get(`dx${i + 1}`)?.value,
+        y: this.destPointsForm.get(`dy${i + 1}`)?.value
+      })))
     })
 
-    // update the src circles when the points change
     effect(() => {
-      this.srcPoints().forEach((point, index) => {
-        const circle = this.srcCircles[index]
-        if (circle.x !== point.x || circle.y !== point.x)
-          circle.position.set(point.x, point.y)
-
-        this.srcPointsForm.controls['p'+ (index+1) + 'x'].setValue(point.x, {emitEvent: false})
-        this.srcPointsForm.controls['p'+ (index+1) + 'y'].setValue(point.y, {emitEvent: false})
+      const src = this.srcPoints()
+      this.srcPoints().forEach((point, i) => {
+        this.srcPointsForm.controls[`sx${i+1}`].setValue(point.x, {emitEvent: false})
+        this.srcPointsForm.controls[`sy${i+1}`].setValue(point.y, {emitEvent: false})
       });
+      this.transformerView?.updateSrcPoints(src)
+    })
 
+    effect(() => {
+      const dest = this.destPoints()
+      this.destPoints().forEach((point, i) => {
+        this.destPointsForm.controls[`dx${i+1}`].setValue(point.x, {emitEvent: false})
+        this.destPointsForm.controls[`dy${i+1}`].setValue(point.y, {emitEvent: false})
+      });
+      this.transformerView?.updateDestPoints(dest)
     })
 
     // render the display when the transformationMatrix changes
     effect(() => {
-      this.renderTransformation(this.transform())
+      const tm = this.transform()
+      this.transformerView?.applyTransformation(tm)
     });
 
   }
 
   ngAfterViewInit(): void {
-    this.initApp().then(app => {
-      this.pixieApp = app;
-      console.log(app)
-      this.initTransform(this.transformType())
+
+    this.srcPoints.set(this.getDefaultPoints(this.transformType()))
+    this.destPoints.set(this.getDefaultPoints(this.transformType()))
+
+    const transformerView = new TransformerView(
+      (points: XY[]) => this.srcPoints.set(points),
+      (points: XY[]) => this.destPoints.set(points)
+    )
+    this.transformerView = transformerView
+
+    transformerView.ready.then(() => {
+      transformerView.appendTo(this.viewContainer().nativeElement)
+      transformerView.initPoints(this.srcPoints(), this.destPoints())
     })
   }
 
-  async initApp() {
-    const app = new Application();
-    await app.init({ background: "#e5e7eb", width: 400, height: 400, antialias: true});
-    this.pixiContainer().nativeElement.appendChild(app.canvas);
-    app.stage.eventMode = 'static';
-    app.stage.hitArea = app.screen;
-    app.stage.on('pointerup', this.onDragEnd);
-    app.stage.on('pointerupoutside', this.onDragEnd);
-    return app
-  }
+  getDefaultPoints(type: TransformType) : XY[] {
 
-  initTransform(type:TransformType) {
-    const outputPadding = 400;
-    const outputSize = 400;
-    const outputStep = 20;
-
-    this.inputs = []
-    for (let x = -outputPadding; x <= outputSize + outputPadding; x += outputStep) {
-      for (let y = -outputPadding; y <= outputSize + outputPadding; y += outputStep) {
-        this.inputs.push(new Point(x, y))
-      }
-    }
-
-    this.initSrcPoints(type)
-    this.destPoints.set(this.srcPoints().slice())
-
-    const pixieApp = this.pixieApp
-    if (pixieApp) {
-      pixieApp.stage.removeChildren()
-
-      // add output "lattice" (all at pos 1,1, because fabric seems to have a bug with negative coordinates)
-      this.outputDots = this.inputs.map(
-        (_) => {
-          return pixieApp.stage.addChild(new Graphics().circle(0, 0, 2).fill(0x000000));
-        }
-      )
-
-      this.srcCircles = this.srcPoints().map(
-        (_) => {
-          const circle = this.makeCross(1,1)
-          pixieApp.stage.addChild(circle)
-          return circle
-        }
-      )
-
-      this.destCircles = this.destPoints().map(
-        (_) => {
-          const circle = this.makeHandle(1,1)
-          pixieApp.stage.addChild(circle)
-          return circle
-        }
-      )
-
-    }
-
-  }
-
-  initSrcPoints(type: TransformType) {
-
-    const anchorsPadding = 0
-    const anchorsSize = 400
+    const padding = 0
+    const size = 400
 
     switch (type) {
       case "perspective":
-        this.srcPoints.set([
-          new Point(anchorsPadding, anchorsPadding),
-          new Point(anchorsSize-anchorsPadding, anchorsPadding),
-          new Point(anchorsSize-anchorsPadding, anchorsSize-anchorsPadding),
-          new Point(anchorsPadding, anchorsSize-anchorsPadding)
-        ])
-        break
+        return [
+          {x: padding, y: padding},
+          {x: size-padding, y: padding},
+          {x: size-padding, y: size-padding},
+          {x: padding, y: size-padding}
+        ]
       case "affine":
-        this.srcPoints.set([
-          new Point(anchorsSize/2, anchorsPadding),
-          new Point(anchorsSize-anchorsPadding, anchorsSize-anchorsPadding),
-          new Point(anchorsPadding, anchorsSize-anchorsPadding),
-        ])
-        break
+        return [
+          {x: size/2, y: padding},
+          {x: size-padding, y: size-padding},
+          {x: padding, y: size-padding}
+        ]
       case "partialAffine":
-        this.srcPoints.set([
-          new Point(anchorsPadding, anchorsSize/2),
-          new Point(anchorsSize-anchorsPadding, anchorsSize/2),
-        ])
-        break
+        return [
+          {x: padding, y: size/2},
+          {x: size-padding, y: size/2}
+        ]
     }
 
-  }
-
-  makeHandle(x: number, y: number) {
-    const handle = new Graphics().circle(0, 0, 10).fill(0xFF0000).stroke(0x000000);
-    handle.alpha = 0.5
-    handle.position.set(x, y);
-    handle.eventMode = 'dynamic';
-    handle.cursor = 'pointer';
-    handle.on('pointerdown', this.onPointerDown)
-    return handle
-  }
-
-  makeCross(x: number, y: number) {
-    const cross = new Graphics()
-      .moveTo(-10, 0).lineTo(-2,0)
-      .moveTo(2, 0).lineTo(10,0)
-      .moveTo(0, -10).lineTo(0,-2)
-      .moveTo(0, 2).lineTo(0,10)
-      .circle(0,0, 16)
-      .fill({color: 0xFF0000, alpha: 0})
-      .stroke(0x000000);
-    cross.position.set(x, y);
-    cross.position.set(x, y);
-    cross.eventMode = 'dynamic';
-    cross.cursor = 'pointer';
-    cross.on('pointerdown', this.onPointerDown)
-    return cross
-  }
-
-
-  renderTransformation(tm: TransformMatrix) {
-
-    const outputs = this.inputs.map((input) => {
-      const [x, y] = [input.x, input.y]
-      const {a,b,c,d,e,f,g, h} = {...tm}
-      return new Point(
-        (a*x+b*y+c) / (g*x+h*y+1),
-        (d*x+e*y+f) / (g*x+h*y+1)
-      )
-    })
-    outputs.forEach((point, index) => {
-      this.outputDots[index].position.set(point.x, point.y)
-    })
   }
 
   onTransformType(type: TransformType) {
     this.transformType.set(type)
-    this.initTransform(this.transformType())
+    this.srcPoints.set(this.getDefaultPoints(type))
+    this.destPoints.set(this.getDefaultPoints(type))
   }
 
-  onPointerDown = (event: FederatedPointerEvent) => {
-    this.dragTarget = event.target;
-    this.pixieApp!.stage.on('pointermove', this.onDragMove)
+  onResetSrc() {
+    this.srcPoints.set(this.getDefaultPoints(this.transformType()))
   }
-
-  onDragMove= (event: FederatedPointerEvent) => {
-    if (this.dragTarget) {
-      this.dragTarget.parent.toLocal(event.global, null, this.dragTarget.position);
-      this.srcPoints.set(
-        this.srcCircles.map((circle) => {
-          return new Point(Math.round(circle.position.x), Math.round(circle.position.y))
-        })
-      )
-      this.destPoints.set(
-        this.destCircles.map((circle) => {
-          return new Point(Math.round(circle.position.x), Math.round(circle.position.y))
-        })
-      )
-    }
-  }
-
-  onDragEnd = (_: FederatedPointerEvent)=> {
-    if (this.dragTarget) {
-      this.pixieApp!.stage.off('pointermove', this.onDragMove);
-      this.dragTarget = null;
-    }
+  onResetDest() {
+    this.destPoints.set(this.getDefaultPoints(this.transformType()))
   }
 
 }
