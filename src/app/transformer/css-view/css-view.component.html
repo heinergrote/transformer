@@ -1,0 +1,21 @@
+<div>
+  <!--  https://franklinta.com/2014/09/08/computing-css-matrix3d-transforms/  -->
+  <div class="w-[400px] h-[400px] overflow-clip bg-gray-300">
+
+    <div class="w-[400px] h-[400px] bg-gradient-to-br from-blue-700 to-fuchsia-500 text-white" [ngStyle]="{
+         'position': 'relative',
+         'transform-origin': '0 0',
+         'transform': cssTransformMatrix3d()
+       }"
+    >
+      <div class="font-bold text-7xl flex flex-col gap-4 p-4 h-full">
+        <div>CSS</div>
+        <div>transform:</div>
+        <div>matrix3d</div>
+        <div>👍</div>
+      </div>
+    </div>
+
+  </div>
+  <div>CSS: transform: matrix3d(...)</div>
+</div>

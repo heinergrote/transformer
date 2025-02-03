@@ -1,0 +1,9 @@
+<div class ="flex gap-1 mx-4 pt-2">
+  @for (type of types; track type ) {
+    @if (transformType() == type) {
+      <button class="border p-1 font-bold" (click)="transformTypeSelect.emit(type)">{{type}}</button>
+    } @else {
+      <button class="border p-1" (click)="transformTypeSelect.emit(type)">{{type}}</button>
+    }
+  }
+</div>

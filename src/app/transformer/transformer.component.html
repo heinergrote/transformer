@@ -1,0 +1,26 @@
+<app-type-select  [transformType]="transformType()" (transformTypeSelect)="onTransformType($event)" />
+
+<div class="flex p-4 gap-4">
+  <app-canvas-view [transform]="transform()" [(srcPoints)]="srcPoints" [(destPoints)]="destPoints"/>
+  <app-css-view [transform]="transform()"/>
+  <app-svg-view [transform]="transform()"  [transformType]="transformType()" />
+</div>
+
+<div class="flex p-4 gap-8">
+
+  <div>
+    <div class="text-xl">Reference Points</div>
+    <div class="flex py-2 gap-2">
+
+      <app-points-form [(points)]="srcPoints"
+                       [defaultPoints]="getDefaultPoints(transformType())"/>
+      <div class="p-1 text-2xl"> → </div>
+      <app-points-form [(points)]="destPoints"
+                       [defaultPoints]="getDefaultPoints(transformType())"/>
+
+    </div>
+  </div>
+
+  <app-matrix [transform]="transform()" />
+
+</div>

@@ -1,7 +1,6 @@
 import {Application, FederatedPointerEvent, Graphics} from 'pixi.js';
 import {identityMatrix, TransformMatrix} from './homography';
-
-interface XY {x:number, y:number}
+import {XY} from './xy';
 
 export class TransformerView {
 
@@ -32,6 +31,8 @@ export class TransformerView {
 
   private async initApp() {
 
+    console.log('init pixi app')
+
     await this.app.init({ background: "#e5e7eb", width: 400, height: 400, antialias: true});
     this.app.stage.eventMode = 'static';
     this.app.stage.hitArea = this.app.screen;
@@ -57,10 +58,18 @@ export class TransformerView {
       }
     )
 
+    console.log('init pixi app... done')
+
   }
 
   appendTo(element: HTMLElement) {
+    console.log('attaching pixi canvas to element')
     element.appendChild(this.app.canvas)
+  }
+
+  destroy() {
+    console.log('destroying pixi app')
+    this.app.destroy();
   }
 
 
