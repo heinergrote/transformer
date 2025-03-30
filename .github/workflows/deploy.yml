@@ -33,6 +33,6 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "dist/transformer/browser/*"
-          target: "/opt/nginx/transformer"
+          target: "/opt/nginx-h9ex/html/transformer"
           strip_components: 3
           rm: true
